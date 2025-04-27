@@ -23,6 +23,16 @@ const Login = () => {
       return;
     }
     
+    if (!email.includes('@')) {
+      setError('נא להזין כתובת אימייל תקינה');
+      return;
+    }
+    
+    if (password.length < 6) {
+      setError('הסיסמה חייבת להכיל לפחות 6 תווים');
+      return;
+    }
+    
     setLoading(true);
     
     try {
@@ -30,7 +40,7 @@ const Login = () => {
       navigate('/');
     } catch (err) {
       console.error('Login error:', err);
-      setError('שגיאה בהתחברות. בדוק את פרטי הכניסה שלך ונסה שוב.');
+      setError(err instanceof Error ? err.message : 'שגיאה בהתחברות. בדוק את פרטי הכניסה שלך ונסה שוב.');
     } finally {
       setLoading(false);
     }

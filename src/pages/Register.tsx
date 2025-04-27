@@ -21,17 +21,22 @@ const Register = () => {
     setError('');
     
     if (!email || !password || !confirmPassword) {
-      setError('נא למלא את כל השדות החובה');
+      setError('נא למלא את כל שדות החובה');
       return;
     }
     
-    if (password !== confirmPassword) {
-      setError('הסיסמאות אינן תואמות');
+    if (!email.includes('@')) {
+      setError('נא להזין כתובת אימייל תקינה');
       return;
     }
     
     if (password.length < 6) {
       setError('הסיסמה חייבת להכיל לפחות 6 תווים');
+      return;
+    }
+    
+    if (password !== confirmPassword) {
+      setError('הסיסמאות אינן תואמות');
       return;
     }
     
@@ -42,7 +47,7 @@ const Register = () => {
       navigate('/');
     } catch (err) {
       console.error('Registration error:', err);
-      setError('שגיאה בהרשמה. ייתכן שכתובת האימייל כבר בשימוש.');
+      setError(err instanceof Error ? err.message : 'שגיאה בהרשמה. ייתכן שכתובת האימייל כבר בשימוש.');
     } finally {
       setLoading(false);
     }

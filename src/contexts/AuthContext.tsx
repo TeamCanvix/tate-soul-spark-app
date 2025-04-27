@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AuthStatus, User } from '@/types';
 import { toast } from '@/components/ui/use-toast';
@@ -22,7 +21,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>('loading');
 
   useEffect(() => {
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
@@ -39,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               email: session.user.email!,
               displayName: profile.full_name,
               createdAt: new Date(session.user.created_at),
-              premium: false, // You can add a premium field to profiles table if needed
+              premium: false,
             });
           }
           setStatus('authenticated');
@@ -50,7 +48,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session?.user) {
@@ -86,10 +83,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        const hebrewError = getHebrewErrorMessage(error.message);
+        throw new Error(hebrewError);
+      }
 
       toast({
-        title: "ברוך הבא",
+        title: "ברוך הבא לטאטע",
         description: "התחברת בהצלחה",
       });
     } catch (error: any) {
@@ -115,10 +115,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        const hebrewError = getHebrewErrorMessage(error.message);
+        throw new Error(hebrewError);
+      }
 
       toast({
-        title: "ברוך הבא",
+        title: "ברוך הבא לטאטע",
         description: "נרשמת בהצלחה",
       });
     } catch (error: any) {
@@ -171,6 +174,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         variant: "destructive",
       });
     }
+  }
+
+  function getHebrewErrorMessage(errorMessage: string): string {
+    const errorMap: Record<string, string> = {
+      'Invalid email': 'כתובת אימייל לא תקינה',
+      'Password should be at least 6 characters': 'הסיסמה חייבת להכיל לפחות 6 תווים',
+      'User already registered': 'משתמש כבר קיים במערכת',
+      'Invalid login credentials': 'פרטי התחברות שגויים',
+      'Email not confirmed': 'האימייל טרם אומת',
+      'Invalid password': 'סיסמה שגויה',
+      'Email link is invalid or has expired': 'קישור האיפוס לא תקין או שפג תוקפו',
+    };
+
+    return errorMap[errorMessage] || 'אירעה שגיאה. אנא נסה שוב';
   }
 
   return (

@@ -9,6 +9,38 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_notifications: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string
+          id: string
+          type: Database["public"]["Enums"]["notification_type"]
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by: string
+          id?: string
+          type: Database["public"]["Enums"]["notification_type"]
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_notifications_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_reminders: {
         Row: {
           id: string
@@ -134,6 +166,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      notification_type: "encouragement" | "reminder"
       user_role: "user" | "admin"
     }
     CompositeTypes: {
@@ -250,6 +283,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      notification_type: ["encouragement", "reminder"],
       user_role: ["user", "admin"],
     },
   },

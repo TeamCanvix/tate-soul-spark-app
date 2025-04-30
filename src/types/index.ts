@@ -6,6 +6,7 @@ export interface User {
   photoURL?: string;
   createdAt: Date;
   premium: boolean;
+  role?: string;
 }
 
 export type AuthStatus = 'authenticated' | 'unauthenticated' | 'loading';

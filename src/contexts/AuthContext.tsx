@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AuthStatus, User } from '@/types';
 import { toast } from '@/components/ui/use-toast';
@@ -38,6 +39,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               displayName: profile.full_name,
               createdAt: new Date(session.user.created_at),
               premium: false,
+              // Include the role property from the profile
+              role: profile.role || 'user',
             });
           }
           setStatus('authenticated');
@@ -64,6 +67,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 displayName: profile.full_name,
                 createdAt: new Date(session.user.created_at),
                 premium: false,
+                // Include the role property from the profile
+                role: profile.role || 'user',
               });
             }
             setStatus('authenticated');

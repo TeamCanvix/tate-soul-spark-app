@@ -30,7 +30,13 @@ const Prayer = () => {
         throw new Error(error.message);
       }
       
-      return data as PrayerType;
+      // Transform the data to match our Prayer type
+      return {
+        id: data.id,
+        name: data.name,
+        hebrewName: data.hebrew_name,
+        content: data.content
+      } as PrayerType;
     }
   });
 

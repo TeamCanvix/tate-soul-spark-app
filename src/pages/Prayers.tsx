@@ -31,7 +31,13 @@ const Prayers = () => {
         throw new Error(error.message);
       }
       
-      return data as Prayer[];
+      // Transform the data to match our Prayer type
+      return data.map(item => ({
+        id: item.id,
+        name: item.name,
+        hebrewName: item.hebrew_name,
+        content: item.content
+      })) as Prayer[];
     }
   });
 

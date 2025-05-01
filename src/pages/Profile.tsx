@@ -1,26 +1,87 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
 import { User, CreditCard, Lock } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Profile = () => {
   const { user, logout } = useAuth();
-  const [displayName, setDisplayName] = useState(user?.displayName || '');
-  const [email, setEmail] = useState(user?.email || '');
+  const [displayName, setDisplayName] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const queryClient = useQueryClient();
+  
+  // Fetch user profile from Supabase
+  const { data: profile, isLoading, error } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) throw new Error('משתמש לא מחובר');
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    enabled: !!user?.id
+  });
+  
+  // Update displayName when profile data loads
+  useEffect(() => {
+    if (profile) {
+      setDisplayName(profile.full_name || '');
+    }
+  }, [profile]);
+  
+  // Update profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (newName: string) => {
+      if (!user?.id) throw new Error('משתמש לא מחובר');
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ full_name: newName })
+        .eq('id', user.id);
+      
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
+      toast({
+        title: "פרופיל עודכן",
+        description: "השם עודכן בהצלחה",
+      });
+      setIsEditing(false);
+    },
+    onError: (error) => {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "שגיאת עדכון",
+        description: "אירעה שגיאה בעדכון הפרופיל",
+        variant: "destructive",
+      });
+    }
+  });
   
   const handleSaveProfile = () => {
-    // This would update the user's profile in a real app
-    // For now, just show a success message
-    toast({
-      title: "פרופיל עודכן",
-      description: "הפרטים שלך עודכנו בהצלחה",
-    });
-    setIsEditing(false);
+    if (!displayName.trim()) {
+      toast({
+        title: "שגיאת אימות",
+        description: "שם לא יכול להיות ריק",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    updateProfileMutation.mutate(displayName);
   };
   
   const handleUpgrade = () => {
@@ -48,39 +109,66 @@ const Profile = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="displayName" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 block text-right">
-                  שם תצוגה
-                </label>
-                <Input
-                  id="displayName"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  className="rtl text-right"
-                  disabled={!isEditing}
-                />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 block text-right">
-                  אימייל
-                </label>
-                <Input
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="rtl text-right"
-                  disabled={!isEditing}
-                />
-              </div>
+              {isLoading ? (
+                <>
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </>
+              ) : error ? (
+                <div className="text-destructive">אירעה שגיאה בטעינת פרטי המשתמש</div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <label htmlFor="displayName" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 block text-right">
+                      שם תצוגה
+                    </label>
+                    <Input
+                      id="displayName"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      className="rtl text-right"
+                      disabled={!isEditing}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="email" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 block text-right">
+                      אימייל
+                    </label>
+                    <Input
+                      id="email"
+                      value={user?.email || ''}
+                      className="rtl text-right"
+                      disabled
+                    />
+                  </div>
+                  {profile?.created_at && (
+                    <div className="text-sm text-muted-foreground text-right">
+                      נרשם ב: {new Date(profile.created_at).toLocaleDateString('he-IL')}
+                    </div>
+                  )}
+                </>
+              )}
             </CardContent>
             <CardFooter className="flex justify-between">
-              {isEditing ? (
+              {isLoading ? (
+                <Skeleton className="h-10 w-24" />
+              ) : isEditing ? (
                 <>
-                  <Button variant="outline" onClick={() => setIsEditing(false)}>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setIsEditing(false);
+                      setDisplayName(profile?.full_name || '');
+                    }}
+                    disabled={updateProfileMutation.isPending}
+                  >
                     ביטול
                   </Button>
-                  <Button onClick={handleSaveProfile}>
-                    שמור שינויים
+                  <Button 
+                    onClick={handleSaveProfile}
+                    disabled={updateProfileMutation.isPending}
+                  >
+                    {updateProfileMutation.isPending ? 'שומר...' : 'שמור שינויים'}
                   </Button>
                 </>
               ) : (

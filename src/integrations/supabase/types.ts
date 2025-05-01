@@ -105,6 +105,27 @@ export type Database = {
           },
         ]
       }
+      prayers: {
+        Row: {
+          content: string
+          hebrew_name: string
+          id: string
+          name: string
+        }
+        Insert: {
+          content: string
+          hebrew_name: string
+          id?: string
+          name: string
+        }
+        Update: {
+          content?: string
+          hebrew_name?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

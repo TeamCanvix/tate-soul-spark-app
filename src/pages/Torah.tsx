@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,19 +16,26 @@ const Torah = () => {
   const { data: torahSnippet, isLoading } = useQuery({
     queryKey: ['torahSnippet', new Date().toISOString().split('T')[0]],
     queryFn: async () => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+
+      // הגדרת תחילת היום (00:00) וסוף היום (23:59)
+      const startOfDay = `${year}-${month}-${day}T00:00:00`;
+      const endOfDay = `${year}-${month}-${day}T23:59:59`;
+
       const { data, error } = await supabase
         .from('torah_snippets')
         .select('*')
-        .eq('date', today)
-        .maybeSingle();
+        .gte('date', startOfDay)
+        .lt('date', endOfDay)
+        .order('date', { ascending: true })
+        .limit(1)
+        .single();
 
-      if (error) {
-        console.error('Error fetching Torah snippet:', error);
-        throw error;
-      }
-
-      return data || defaultMessage;
+      if (error) throw error;
+      return data;
     },
   });
 
@@ -40,6 +46,47 @@ const Torah = () => {
       toast({
         title: "הועתק ללוח",
         description: "התוכן הועתק ללוח. כעת תוכל להדביק אותו בכל מקום.",
+      });
+    }
+  };
+
+  const handleAddTorahContent = async () => {
+    try {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      const formattedDate = `${year}-${month}-${day}`;
+
+      const { error } = await supabase.from('torah_snippets').insert([
+        {
+          title: torahContent.title,
+          content: torahContent.content,
+          date: formattedDate,
+          created_by: user?.id || null,
+        },
+      ]);
+
+      if (error) {
+        toast({
+          title: "שגיאה בהוספה",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "התווסף בהצלחה!",
+        description: "התוכן נוסף ל-20 שניות תורה.",
+      });
+
+      setTorahContent({ title: '', content: '' });
+    } catch (err: any) {
+      toast({
+        title: "שגיאה לא צפויה",
+        description: err.message,
+        variant: "destructive",
       });
     }
   };
